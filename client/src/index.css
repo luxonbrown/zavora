@@ -1,0 +1,425 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   MARKETHUB DESIGN SYSTEM
+   Cinematic storefront + dark-sidebar dashboards.
+   Blue→teal→emerald gradient, used sparingly: CTAs, rings, active states.
+   ========================================================================== */
+
+@theme {
+  /* ---- Dark surfaces --------------------------------------------------- */
+  --color-navy: #06121f;
+  --color-navy-2: #0a1a2b;
+  --color-ink: #0a1a2b;
+
+  /* Brand scene indigo — the reveal-video stage and the logo's backdrop. */
+  --color-indigo: #0d0045;
+
+  /* ---- Brand ramp ------------------------------------------------------ */
+  --color-mh-blue: #0b8fff;
+  --color-mh-sky: #62caff;
+  --color-mh-teal: #22c3c3;
+  --color-mh-emerald: #10b981;
+  --color-mh-mint: #6ee7b7;
+
+  /* ---- Light surfaces -------------------------------------------------- */
+  --color-paper: #ffffff;
+  --color-canvas: #f5f8fb;
+  --color-surface-muted: #eef3f9;
+
+  /* ---- Lines + text ---------------------------------------------------- */
+  --color-line: #e3eaf2;
+  --color-line-strong: #cfdae7;
+  --color-muted: #5b6b7c;
+  --color-muted-on-dark: #8fa3b8;
+
+  /* ---- Status ---------------------------------------------------------- */
+  --color-success: #10b981;
+  --color-warning: #f5a524;
+  --color-danger: #ef4444;
+  --color-info: #0B8FFF;
+
+  /* ---- Radii ----------------------------------------------------------- */
+  --radius-card: 24px;
+  --radius-canvas: 20px;
+  --radius-section: 56px;
+  --radius-pill: 999px;
+
+  /* ---- Typography ------------------------------------------------------ */
+  --font-sans: 'Poppins', 'Inter', 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  /* ---- Motion ---------------------------------------------------------- */
+  --ease-mh: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 380ms;
+
+  /* ---- Shadows (coloured, hero/CTA only) -------------------------------- */
+  --shadow-glow-blue: 0 18px 50px -12px rgb(29 107 255 / 0.45);
+  --shadow-glow-emerald: 0 18px 50px -12px rgb(16 185 129 / 0.4);
+  --shadow-lift: 0 24px 60px -24px rgb(6 18 31 / 0.28);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-line);
+  }
+
+  /* Hard guard against any horizontally-overflowing motion element.
+     Hidden first, then clip where supported (clip avoids a new scroll
+     container, which would break the sticky pinned scenes elsewhere). */
+  html,
+  body {
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+
+  /* Karaoke highlight: the gradient the lit words fill with. A variable rather
+     than a repeated literal so the block reads the brand ramp directly. */
+  :root {
+    --mh-karaoke-grad: linear-gradient(135deg, #0b8fff 0%, #22c3c3 55%, #10b981 100%);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Lenis drives scrolling; native smooth would fight it. */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  ::selection {
+    background: linear-gradient(
+      135deg,
+      rgb(29 107 255 / 0.9),
+      rgb(16 185 129 / 0.9)
+    );
+    color: #fff;
+  }
+
+  /* Gradient focus ring — brand shows up in keyboard focus. */
+  :focus-visible {
+    outline: 2px solid var(--color-mh-blue);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  .focus-ring-gradient:focus-visible {
+    outline: 2px solid transparent;
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 5px rgb(29 107 255 / 0.75),
+      0 0 18px rgb(29 107 255 / 0.45);
+  }
+  .on-dark :focus-visible {
+    outline-color: rgb(255 255 255 / 0.9);
+  }
+
+  /* MARKETHUB scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--color-mh-blue), var(--color-mh-emerald));
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--color-mh-sky), var(--color-mh-mint));
+    background-clip: content-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   Typography scale
+   ========================================================================== */
+
+@layer components {
+  .h1-hero {
+    font-size: clamp(52px, 8.5vw, 120px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 0.94;
+  }
+
+  .h2-section {
+    font-size: clamp(32px, 4.4vw, 62px);
+    font-weight: 600;
+    letter-spacing: -0.028em;
+    line-height: 1.02;
+  }
+
+  .h3-sub {
+    font-size: clamp(21px, 2.1vw, 30px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .t-hero-support {
+    font-size: clamp(16px, 1.35vw, 21px);
+    line-height: 1.45;
+  }
+  .t-title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.012em;
+  }
+  .t-body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .t-small {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .t-caption {
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .t-eyebrow {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .wordmark {
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* Gradient text used for the wordmark and key display words. */
+  .text-gradient-brand {
+    background-image: linear-gradient(
+      135deg,
+      var(--color-mh-blue) 0%,
+      var(--color-mh-teal) 55%,
+      var(--color-mh-emerald) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  .on-dark .text-gradient-brand {
+    background-image: linear-gradient(
+      135deg,
+      #fff 0%,
+      var(--color-mh-sky) 45%,
+      var(--color-mh-mint) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+@utility container-z {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  @media (width >= 768px) {
+    padding-inline: 2.5rem;
+  }
+  @media (width >= 1024px) {
+    padding-inline: 4rem;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* The single brand gradient, as a paintable utility. */
+@utility bg-brand-gradient {
+  background-image: linear-gradient(135deg, #0B8FFF 0%, #22C3C3 55%, #10B981 100%);
+}
+
+@utility glass {
+  background-color: rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgb(255 255 255 / 0.14);
+}
+
+@utility glass-light {
+  background-color: rgb(255 255 255 / 0.72);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 0.7);
+}
+
+@utility skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-muted);
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      rgb(255 255 255 / 0) 0%,
+      rgb(255 255 255 / 0.7) 50%,
+      rgb(255 255 255 / 0) 100%
+    );
+    animation: mh-shimmer 1.6s infinite;
+  }
+}
+
+@keyframes mh-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+
+/* Hero letter intro — split-letter reveal. */
+@keyframes mh-letter-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5em) rotate(2deg);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* Ambient flowing-water gradient (hero fallback + auth panel). */
+@keyframes mh-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@utility animate-flow {
+  background-size: 220% 220%;
+  animation: mh-flow 18s ease-in-out infinite;
+}
+
+/* Soft drifting glow used behind dark sections. */
+@keyframes mh-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0) scale(1.12);
+    opacity: 0.8;
+  }
+}
+
+@utility animate-drift {
+  animation: mh-drift 20s ease-in-out infinite;
+}
+
+@keyframes mh-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility page-rise {
+  animation: mh-rise var(--dur-base) var(--ease-mh) both;
+}
+
+/* Draw-in for SVG process paths. */
+@keyframes mh-draw {
+  from {
+    stroke-dashoffset: var(--mh-draw-len, 1200);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* Bird idle float — hero only. Slow, small, and never enough to notice as motion. */
+@keyframes mh-bird-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50%      { transform: translate3d(0, -16px, 0) rotate(-1.2deg); }
+}
+
+/* Scroll cue dot travelling down the hairline. */
+@keyframes mh-scroll-dot {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  30%  { opacity: 1; }
+  100% { transform: translateY(250%); opacity: 0; }
+}

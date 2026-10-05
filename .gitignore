@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# build output
+client/dist/
+server/dist/
+
+# logs
+*.log
+npm-debug.log*
+
+# local env / editor / OS
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

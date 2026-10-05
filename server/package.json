@@ -1,0 +1,27 @@
+{
+  "name": "zavora-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZAVORA API — Express + MySQL + CJdropshipping",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "test": "node test/money.js && node test/sql-arity.js && node test/cj.js && node test/orders.js && node test/contract.js && node test/smoke.js",
+    "test:unit": "node test/money.js && node test/sql-arity.js && node test/cj.js && node test/orders.js && node test/contract.js",
+    "test:api": "node test/smoke.js",
+    "cj:sync": "node database/cj-sync-cli.js",
+    "catalogue:wipe": "node database/wipe-catalogue.js",
+    "catalogue:cj": "node database/wipe-catalogue.js --yes && node database/cj-sync-cli.js",
+    "db:schema": "node database/schema-runner.js",
+    "db:seed": "node database/seed.js",
+    "db:reset": "npm run db:schema && npm run db:seed"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "mysql2": "^3.11.5"
+  }
+}
