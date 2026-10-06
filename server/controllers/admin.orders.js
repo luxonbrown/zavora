@@ -78,6 +78,7 @@ async function listOrders(req, res) {
     `SELECT o.id, o.order_number, o.status, o.payment_status, o.email,
             o.total, o.currency, o.shipping_country, o.shipping_method,
             o.tracking_number, o.carrier, o.estimated_delivery_at, o.placed_at,
+            o.supplier_cost_total, o.shipping_cost_total, o.payment_fee,
             (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count,
             (SELECT oi.image_url FROM order_items oi
               WHERE oi.order_id = o.id ORDER BY oi.id ASC LIMIT 1) AS thumbnail
@@ -107,6 +108,7 @@ async function listOrders(req, res) {
       estimatedDeliveryAt: r.estimated_delivery_at,
       placedAt: r.placed_at,
       isOpen: isOpen(r.status),
+      margin: (decimal(r.total) || 0) - (decimal(r.supplier_cost_total) || 0),
       // The admin UI renders these as the available actions.
       allowedNext: allowedNext(r.status),
     })),
@@ -140,6 +142,28 @@ async function getOrder(req, res) {
       ...order,
       allowedNext: allowedNext(row.status),
       isOpen: isOpen(row.status),
+      financials: {
+        supplierCostTotal: decimal(row.supplier_cost_total) || 0,
+        shippingCostTotal: decimal(row.shipping_cost_total) || 0,
+        paymentFee: decimal(row.payment_fee) || 0,
+        advertisingCost: decimal(row.advertising_cost) || 0,
+        otherCosts: decimal(row.other_costs) || 0,
+        grossMargin:
+          (decimal(row.total) || 0) -
+          (decimal(row.supplier_cost_total) || 0),
+        operatingMargin:
+          (decimal(row.total) || 0) -
+          (decimal(row.supplier_cost_total) || 0) -
+          (decimal(row.shipping_cost_total) || 0) -
+          (decimal(row.payment_fee) || 0),
+        estimatedNetProfit:
+          (decimal(row.total) || 0) -
+          (decimal(row.supplier_cost_total) || 0) -
+          (decimal(row.shipping_cost_total) || 0) -
+          (decimal(row.payment_fee) || 0) -
+          (decimal(row.advertising_cost) || 0) -
+          (decimal(row.other_costs) || 0),
+      },
       shipments: history.map((h) => ({
         status: h.status,
         trackingNumber: h.tracking_number,

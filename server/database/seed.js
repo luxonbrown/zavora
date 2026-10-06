@@ -243,6 +243,14 @@ async function seed() {
         return { ...line, product, unit, lineTotal };
       });
 
+      let supplierCostCents = 0;
+      let supplierShippingCents = 0;
+      for (const line of lineValues) {
+        supplierCostCents += toCents(line.product.supplier.costPrice) * line.quantity;
+        supplierShippingCents += toCents(line.product.supplier.shippingCost) * line.quantity;
+      }
+      const paymentFeeCents = Math.round(subtotalCents * 0.029) + 30;
+
       const shippingCents = shippingCostFor(subtotalCents);
       const taxCents = 0;
       const totalCents = subtotalCents + shippingCents + taxCents;
@@ -256,8 +264,9 @@ async function seed() {
             shipping_state, shipping_city, shipping_address1, shipping_address2,
             shipping_postal_code, shipping_method,
             subtotal, shipping_amount, tax_amount, tax_rate, total, currency,
+            supplier_cost_total, shipping_cost_total, payment_fee,
             tracking_number, carrier, estimated_delivery_at, placed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'USD', ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 'USD', ?, ?, ?, ?, ?, ?, ?)`,
         [
           o.orderNumber,
           o.email ? userIds[o.email] : null,
@@ -278,6 +287,9 @@ async function seed() {
           fromCents(shippingCents),
           fromCents(taxCents),
           fromCents(totalCents),
+          fromCents(supplierCostCents),
+          fromCents(supplierShippingCents),
+          fromCents(paymentFeeCents),
           o.trackingNumber,
           o.carrier,
           eta,
@@ -288,10 +300,11 @@ async function seed() {
 
       for (const line of lineValues) {
         await conn.execute(
-          `INSERT INTO order_items
-             (order_id, product_id, variant_id, name, variant_label, image_url,
-              unit_price, quantity, line_total)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           `INSERT INTO order_items
+              (order_id, product_id, variant_id, name, variant_label, image_url,
+               unit_price, quantity, line_total,
+               unit_supplier_cost, shipping_cost, payment_fee)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             orderId,
             productIds[line.slug],
@@ -302,6 +315,9 @@ async function seed() {
             fromCents(line.unit),
             line.quantity,
             fromCents(line.lineTotal),
+            line.product.supplier.costPrice.toFixed(2),
+            fromCents(toCents(line.product.supplier.shippingCost) * line.quantity),
+            fromCents(Math.round((paymentFeeCents * line.lineTotal) / (subtotalCents || 1))),
           ]
         );
       }

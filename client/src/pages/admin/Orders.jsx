@@ -129,7 +129,7 @@ export default function AdminOrders() {
             <table className="w-full min-w-[840px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-line">
-                  {['Order', 'Placed', 'Customer', 'Destination', 'Items', 'Payment', 'Status', 'Total'].map(
+                  {['Order', 'Placed', 'Customer', 'Destination', 'Items', 'Payment', 'Status', 'Total', 'Margin'].map(
                     (h) => (
                       <th
                         key={h}
@@ -182,6 +182,9 @@ export default function AdminOrders() {
                     </td>
                     <td className="tnum px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-ink">
                       {formatPrice(o.total)}
+                    </td>
+                    <td className="tnum px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-ink">
+                      {typeof o.margin === 'number' ? formatPrice(o.margin) : '—'}
                     </td>
                   </tr>
                 ))}

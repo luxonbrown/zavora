@@ -25,6 +25,24 @@ const MOCK_OVERVIEW = {
   customers: 0,
   orders: { total: 0, open: 0, cancelled: 0, delivered: 0, byStatus: {} },
   revenue: { gross: 0, collected: 0, refunded: 0 },
+  financials: {
+    revenue: 0,
+    supplierCosts: 0,
+    shippingCosts: 0,
+    paymentFees: 0,
+    otherCosts: 0,
+    grossMargin: 0,
+    operatingMargin: 0,
+    estimatedNetProfit: 0,
+    averageOrderValue: 0,
+    paidOrders: 0,
+    pendingOrders: 0,
+    deliveredOrders: 0,
+    refunds: 0,
+    bestSelling: [],
+    mostProfitable: [],
+    byDate: [],
+  },
   syncRunning: false,
   lowStock: [],
   topCategories: [],
@@ -138,6 +156,16 @@ export const adminService = {
     }
     const { data } = await api.get(`/admin/products/${encodeURIComponent(id)}`);
     return data.product;
+  },
+
+  /** Admin-controlled retail price. */
+  async updateProductPrice(id, price) {
+    if (USE_MOCK) {
+      await delay();
+      return { ok: true, price };
+    }
+    const { data } = await api.patch(`/admin/products/${encodeURIComponent(id)}`, { price });
+    return data;
   },
 
   /* ---- CJ integration --------------------------------------------------- */

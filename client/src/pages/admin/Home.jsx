@@ -108,6 +108,119 @@ export default function AdminHome() {
         />
       </div>
 
+      {d.financials ? (
+        <section className="space-y-4">
+          <h2 className="text-[15px] font-medium text-ink">Financials</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Kpi
+              label="Revenue"
+              value={formatPrice(d.financials.revenue)}
+              hint={`AOV ${formatPrice(d.financials.averageOrderValue)}`}
+              icon={TrendingUp}
+              accent
+            />
+            <Kpi
+              label="Supplier costs"
+              value={formatPrice(d.financials.supplierCosts)}
+              hint={`Shipping ${formatPrice(d.financials.shippingCosts)} · fees ${formatPrice(d.financials.paymentFees)}`}
+              icon={Package}
+            />
+            <Kpi
+              label="Gross margin"
+              value={formatPrice(d.financials.grossMargin)}
+              hint={`Operating ${formatPrice(d.financials.operatingMargin)}`}
+              icon={TrendingUp}
+            />
+            <Kpi
+              label="Estimated net profit"
+              value={formatPrice(d.financials.estimatedNetProfit)}
+              hint={`After ${formatPrice(d.financials.otherCosts)} other costs`}
+              icon={TrendingUp}
+              accent
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Kpi label="Total orders" value={formatNumber(d.orders.total)} icon={ShoppingCart} />
+            <Kpi label="Paid orders" value={formatNumber(d.financials.paidOrders)} icon={ShoppingCart} />
+            <Kpi label="Pending orders" value={formatNumber(d.financials.pendingOrders)} icon={ShoppingCart} />
+            <Kpi label="Delivered / refunds" value={`${formatNumber(d.financials.deliveredOrders)} / ${formatNumber(d.financials.refunds)}`} icon={ShoppingCart} />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="rounded-xl border border-line bg-surface">
+              <header className="border-b border-line px-5 py-4">
+                <h3 className="text-[15px] font-medium text-ink">Best-selling products</h3>
+              </header>
+              <ul className="divide-y divide-line">
+                {d.financials.bestSelling.length === 0 ? (
+                  <li className="px-5 py-8 text-center text-[13px] text-muted">No sales yet.</li>
+                ) : (
+                  d.financials.bestSelling.map((p) => (
+                    <li key={p.name} className="flex items-center justify-between px-5 py-3">
+                      <span className="truncate text-[13px] text-ink">{p.name}</span>
+                      <span className="tnum text-[13px] text-muted">
+                        {formatNumber(p.units)} sold · {formatPrice(p.revenue)}
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </section>
+
+            <section className="rounded-xl border border-line bg-surface">
+              <header className="border-b border-line px-5 py-4">
+                <h3 className="text-[15px] font-medium text-ink">Most profitable products</h3>
+              </header>
+              <ul className="divide-y divide-line">
+                {d.financials.mostProfitable.length === 0 ? (
+                  <li className="px-5 py-8 text-center text-[13px] text-muted">No sales yet.</li>
+                ) : (
+                  d.financials.mostProfitable.map((p) => (
+                    <li key={p.name} className="flex items-center justify-between px-5 py-3">
+                      <span className="truncate text-[13px] text-ink">{p.name}</span>
+                      <span className="tnum text-[13px] text-muted">{formatPrice(p.profit)}</span>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </section>
+          </div>
+
+          <section className="rounded-xl border border-line bg-surface">
+            <header className="border-b border-line px-5 py-4">
+              <h3 className="text-[15px] font-medium text-ink">Revenue &amp; profit by date</h3>
+            </header>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-line">
+                    {['Date', 'Revenue', 'Profit'].map((h) => (
+                      <th key={h} className="px-5 py-3 t-caption font-medium text-muted">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {d.financials.byDate.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-5 py-8 text-center text-[13px] text-muted">No data yet.</td>
+                    </tr>
+                  ) : (
+                    d.financials.byDate.map((row) => (
+                      <tr key={row.date}>
+                        <td className="px-5 py-2.5 text-[13px] text-ink">{formatDate(row.date)}</td>
+                        <td className="tnum px-5 py-2.5 text-[13px] text-ink">{formatPrice(row.revenue)}</td>
+                        <td className="tnum px-5 py-2.5 text-[13px] text-ink">{formatPrice(row.profit)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="rounded-xl border border-line bg-surface lg:col-span-2">
           <header className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">

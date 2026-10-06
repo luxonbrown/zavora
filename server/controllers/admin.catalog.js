@@ -6,7 +6,7 @@
  * lib/catalog.js about why public product SQL cannot reference product_supplier.
  */
 
-const { query, queryOne } = require('../database/pool');
+const { query, queryOne, execute } = require('../database/pool');
 const { HttpError } = require('../middleware/error');
 const { decimal } = require('../lib/money');
 const { isOpen } = require('../lib/orderStatus');
@@ -21,7 +21,8 @@ async function overview(req, res) {
   // so joining on category_id alone would report every branch as zero.
   const { tree } = await catalog.listCategoryTree({ maxDepth: 1 });
 
-  const [totals, revenue, statusCounts, recent, lowStock, cj] = await Promise.all([
+  const [totals, revenue, financials, orderCounts, statusCounts, recent, lowStock, cj, bestSelling, mostProfitable, byDate] =
+    await Promise.all([
     queryOne(
       `SELECT
          (SELECT COUNT(*) FROM products WHERE is_active = 1) AS active_products,
@@ -39,6 +40,25 @@ async function overview(req, res) {
          COALESCE(SUM(CASE WHEN payment_status = 'refunded' THEN total ELSE 0 END), 0) AS refunded
        FROM orders
         WHERE status <> 'cancelled'`
+    ),
+    queryOne(
+      `SELECT
+         COALESCE(SUM(CASE WHEN payment_status IN ('paid','refunded') THEN total ELSE 0 END), 0) AS revenue,
+         COALESCE(SUM(CASE WHEN payment_status IN ('paid','refunded') THEN supplier_cost_total ELSE 0 END), 0) AS supplier_costs,
+         COALESCE(SUM(CASE WHEN payment_status IN ('paid','refunded') THEN shipping_cost_total ELSE 0 END), 0) AS shipping_costs,
+         COALESCE(SUM(CASE WHEN payment_status IN ('paid','refunded') THEN payment_fee ELSE 0 END), 0) AS payment_fees,
+         COALESCE(SUM(CASE WHEN payment_status IN ('paid','refunded') THEN advertising_cost + other_costs ELSE 0 END), 0) AS other_costs,
+         COALESCE(AVG(CASE WHEN payment_status = 'paid' THEN total ELSE NULL END), 0) AS aov
+       FROM orders
+       WHERE status <> 'cancelled'`
+    ),
+    queryOne(
+      `SELECT
+         SUM(payment_status = 'paid') AS paid,
+         SUM(payment_status = 'pending') AS pending,
+         SUM(status = 'delivered') AS delivered,
+         SUM(payment_status = 'refunded') AS refunds
+       FROM orders`
     ),
     query(
       `SELECT status, COUNT(*) AS n FROM orders GROUP BY status`
@@ -61,6 +81,36 @@ async function overview(req, res) {
         LIMIT 8`
     ),
     Promise.resolve(sync.isRunning()),
+    query(
+      `SELECT oi.name, SUM(oi.quantity) AS units,
+              SUM(oi.line_total) AS revenue,
+              SUM(oi.line_total - oi.unit_supplier_cost * oi.quantity - oi.shipping_cost - oi.payment_fee) AS profit
+         FROM order_items oi
+         JOIN orders o ON o.id = oi.order_id
+        WHERE o.payment_status IN ('paid','refunded') AND o.status <> 'cancelled'
+        GROUP BY oi.name
+        ORDER BY units DESC
+        LIMIT 5`
+    ),
+    query(
+      `SELECT oi.name, SUM(oi.line_total - oi.unit_supplier_cost * oi.quantity - oi.shipping_cost - oi.payment_fee) AS profit
+         FROM order_items oi
+         JOIN orders o ON o.id = oi.order_id
+        WHERE o.payment_status IN ('paid','refunded') AND o.status <> 'cancelled'
+        GROUP BY oi.name
+        ORDER BY profit DESC
+        LIMIT 5`
+    ),
+    query(
+      `SELECT DATE(o.placed_at) AS d,
+              SUM(o.total) AS revenue,
+              SUM(o.total - o.supplier_cost_total - o.shipping_cost_total - o.payment_fee - o.advertising_cost - o.other_costs) AS profit
+         FROM orders o
+        WHERE o.payment_status IN ('paid','refunded') AND o.status <> 'cancelled'
+        GROUP BY DATE(o.placed_at)
+        ORDER BY d DESC
+        LIMIT 30`
+    ),
   ]);
 
   const counts = Object.fromEntries(statusRows(statusCounts));
@@ -93,6 +143,45 @@ async function overview(req, res) {
         collected: decimal(revenue.collected),
         refunded: decimal(revenue.refunded),
       },
+      financials: (() => {
+        const revenueTotal = decimal(financials.revenue) || 0;
+        const supplierCosts = decimal(financials.supplier_costs) || 0;
+        const shippingCosts = decimal(financials.shipping_costs) || 0;
+        const paymentFees = decimal(financials.payment_fees) || 0;
+        const otherCosts = decimal(financials.other_costs) || 0;
+        const grossMargin = revenueTotal - supplierCosts;
+        const operatingMargin = grossMargin - shippingCosts - paymentFees;
+        return {
+          revenue: revenueTotal,
+          supplierCosts,
+          shippingCosts,
+          paymentFees,
+          otherCosts,
+          grossMargin,
+          operatingMargin,
+          estimatedNetProfit: operatingMargin - otherCosts,
+          averageOrderValue: decimal(financials.aov) || 0,
+          paidOrders: Number(orderCounts.paid || 0),
+          pendingOrders: Number(orderCounts.pending || 0),
+          deliveredOrders: Number(orderCounts.delivered || 0),
+          refunds: Number(orderCounts.refunds || 0),
+          bestSelling: bestSelling.map((p) => ({
+            name: p.name,
+            units: Number(p.units),
+            revenue: decimal(p.revenue) || 0,
+            profit: decimal(p.profit) || 0,
+          })),
+          mostProfitable: mostProfitable.map((p) => ({
+            name: p.name,
+            profit: decimal(p.profit) || 0,
+          })),
+          byDate: byDate.map((d) => ({
+            date: d.d,
+            revenue: decimal(d.revenue) || 0,
+            profit: decimal(d.profit) || 0,
+          })),
+        };
+      })(),
       syncRunning: cj,
       lowStock: lowStock.map((p) => ({
         id: String(p.id),
@@ -207,6 +296,7 @@ async function listProducts(req, res) {
             }
           : null,
         // Gross margin on the sell price. Null when there is no supplier cost.
+        marginAmount: cost !== null ? Math.round((sell - cost) * 100) / 100 : null,
         marginPercent:
           cost !== null && sell > 0
             ? Math.round(((sell - cost) / sell) * 1000) / 10
@@ -296,4 +386,24 @@ async function cjSettings(req, res) {
   res.json({ ok: true, settings: status });
 }
 
-module.exports = { overview, listProducts, getProduct, cjSettings };
+/**
+ * PATCH /api/admin/products/:id — admin price control.
+ *
+ * Body: { price: number }
+ * The selling price is ZAVORA's decision; CJ's cost is never auto-applied.
+ */
+async function updatePrice(req, res) {
+  const price = Number(req.body?.price);
+  if (!Number.isFinite(price) || price < 0 || price > 1000000) {
+    throw HttpError.badRequest('Enter a valid selling price');
+  }
+  const result = await execute('UPDATE products SET price = ? WHERE id = ?', [
+    price.toFixed(2),
+    String(req.params.id),
+  ]);
+  if (!result.affectedRows) throw HttpError.notFound('Product not found');
+  const row = await queryOne('SELECT id, price FROM products WHERE id = ?', [String(req.params.id)]);
+  res.json({ ok: true, price: decimal(row.price) });
+}
+
+module.exports = { overview, listProducts, getProduct, cjSettings, updatePrice };

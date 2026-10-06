@@ -297,6 +297,13 @@ CREATE TABLE `orders` (
   `tax_amount`    DECIMAL(10,2) NOT NULL DEFAULT 0,
   `tax_rate`      DECIMAL(5,4)  NOT NULL DEFAULT 0,
   `total`         DECIMAL(10,2) NOT NULL DEFAULT 0,
+  -- Financial snapshot: frozen at order creation, never recomputed from the
+  -- live product_supplier table (CJ prices change; order history must not).
+  `supplier_cost_total` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'product cost owed to CJ, snapshotted',
+  `shipping_cost_total` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'supplier fulfilment shipping, snapshotted',
+  `payment_fee`   DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'payment processing expense',
+  `advertising_cost` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'recorded ad spend attributed to this order',
+  `other_costs`   DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'other recorded expenses',
   `currency`      CHAR(3)      NOT NULL DEFAULT 'USD',
   `tracking_number` VARCHAR(80) NULL DEFAULT NULL,
   `carrier`       VARCHAR(60)     NULL DEFAULT NULL,
@@ -334,6 +341,10 @@ CREATE TABLE `order_items` (
   `unit_price`     DECIMAL(10,2) NOT NULL,
   `quantity`       SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   `line_total`     DECIMAL(10,2) NOT NULL,
+  -- Historical snapshot of what ZAVORA paid/owed CJ for this line.
+  `unit_supplier_cost` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `shipping_cost`      DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'supplier shipping for this line',
+  `payment_fee`        DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'share of payment processing attributed to the line',
   `created_at`     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_order_items_order` (`order_id`),

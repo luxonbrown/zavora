@@ -10,7 +10,7 @@
  */
 
 const crypto = require('crypto');
-const { queryOne, withTransaction } = require('../database/pool');
+const { queryOne, txQuery, withTransaction } = require('../database/pool');
 const { HttpError } = require('../middleware/error');
 const { resolvePurchasables, decrementStock } = require('../lib/catalog');
 const { toCents, fromCents, centsToNumber, applyPercent } = require('../lib/money');
@@ -190,6 +190,11 @@ async function placeOrder(req, res) {
   const orderNumber = makeOrderNumber();
   const eta = finalRate.estimatedDeliveryAt;
 
+  // Mock payment processing fee on the full customer total.
+  const paymentFeeCents =
+    Math.round((totalCents * config.pricing.paymentFeePercent) / 100) +
+    Math.round(config.pricing.paymentFeeFixed * 100);
+
   const orderId = await withTransaction(async (conn) => {
     // Re-resolve inside the transaction against live rows. `quantity` must be
     // carried on the line, because resolvePurchasables echoes its input object
@@ -202,6 +207,19 @@ async function placeOrder(req, res) {
         return r;
       })
     );
+
+    // Snapshot supplier cost/shipping per line INSIDE the transaction so the
+    // order keeps the cost structure that was live at purchase time.
+    const supplierByProduct = new Map();
+    for (const line of lines) {
+      const [row] = await txQuery(
+        conn,
+        `SELECT cost_price, shipping_cost FROM product_supplier
+          WHERE product_id = ? AND supplier = 'cj' LIMIT 1`,
+        [line.product.id]
+      );
+      supplierByProduct.set(String(line.product.id), row || null);
+    }
 
     for (const line of lines) {
       if (!line.available) {
@@ -228,6 +246,16 @@ async function placeOrder(req, res) {
       }
     }
 
+    // Historical snapshot of the supplier side of this order.
+    let supplierCostCents = 0;
+    let supplierShippingCents = 0;
+    for (const line of lines) {
+      const s = supplierByProduct.get(String(line.product.id));
+      if (!s) continue;
+      supplierCostCents += Math.round(Number(s.cost_price) * 100) * line.line.quantity;
+      supplierShippingCents += Math.round(Number(s.shipping_cost) * 100) * line.line.quantity;
+    }
+
     const [ins] = await conn.execute(
       `INSERT INTO orders
          (order_number, user_id, email, status, payment_status,
@@ -235,8 +263,9 @@ async function placeOrder(req, res) {
           shipping_state, shipping_city, shipping_address1, shipping_address2,
           shipping_postal_code, shipping_method,
           subtotal, shipping_amount, tax_amount, tax_rate, total, currency,
+          supplier_cost_total, shipping_cost_total, payment_fee,
           estimated_delivery_at)
-       VALUES (?, ?, ?, 'payment_confirmed', 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'USD', ?)`,
+       VALUES (?, ?, ?, 'payment_confirmed', 'paid', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'USD', ?, ?, ?, ?)`,
       [
         orderNumber,
         req.user ? req.user.id : null,
@@ -256,17 +285,27 @@ async function placeOrder(req, res) {
         fromCents(taxCents),
         (config.pricing.taxRatePercent / 100).toFixed(4),
         fromCents(totalCents),
+        fromCents(supplierCostCents),
+        fromCents(supplierShippingCents),
+        fromCents(paymentFeeCents),
         eta,
       ]
     );
     const newOrderId = ins.insertId;
 
     for (const line of lines) {
+      const s = supplierByProduct.get(String(line.product.id));
+      const unitCost = s ? Number(s.cost_price) : 0;
+      const unitShip = s ? Number(s.shipping_cost) : 0;
+      const lineTotalCents = line.unitCents * line.line.quantity;
+      const linePaymentFeeCents =
+        totalCents > 0 ? Math.round((paymentFeeCents * lineTotalCents) / totalCents) : 0;
       await conn.execute(
         `INSERT INTO order_items
            (order_id, product_id, variant_id, name, variant_label, image_url,
-            unit_price, quantity, line_total)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            unit_price, quantity, line_total,
+            unit_supplier_cost, shipping_cost, payment_fee)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           newOrderId,
           line.product.id,
@@ -276,7 +315,10 @@ async function placeOrder(req, res) {
           line.product.image || '',
           fromCents(line.unitCents),
           line.line.quantity,
-          fromCents(line.unitCents * line.line.quantity),
+          fromCents(lineTotalCents),
+          unitCost.toFixed(2),
+          (unitShip * line.line.quantity).toFixed(2),
+          fromCents(linePaymentFeeCents),
         ]
       );
     }

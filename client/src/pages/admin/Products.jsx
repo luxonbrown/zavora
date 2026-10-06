@@ -11,6 +11,54 @@ import useAsync from '../../hooks/useAsync.js';
 import adminService from '../../services/admin.js';
 import { formatPrice, formatNumber, cx } from '../../utils/format.js';
 
+/** Inline selling-price editor: ZAVORA controls the retail price, CJ cost never does. */
+function PriceEditor({ product, onSaved }) {
+  const [value, setValue] = useState(String(product.price ?? ''));
+  const [status, setStatus] = useState('idle'); // idle | saving | saved | error
+
+  const save = async () => {
+    const price = Number(value);
+    if (!Number.isFinite(price) || price < 0) {
+      setStatus('error');
+      return;
+    }
+    setStatus('saving');
+    try {
+      await adminService.updateProductPrice(product.id, price);
+      setStatus('saved');
+      onSaved?.();
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[13.5px] text-muted">$</span>
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          setStatus('idle');
+        }}
+        className="tnum w-20 rounded-md border border-line bg-transparent px-2 py-1 text-[13.5px] text-ink"
+        aria-label={`Selling price for ${product.name}`}
+      />
+      <button
+        type="button"
+        onClick={save}
+        disabled={status === 'saving'}
+        className="rounded-md border border-line px-2 py-1 text-[12px] text-ink transition-colors duration-150 hover:bg-surface-muted disabled:opacity-40"
+      >
+        {status === 'saving' ? '…' : status === 'saved' ? 'Saved' : status === 'error' ? 'Retry' : 'Save'}
+      </button>
+    </div>
+  );
+}
+
 const PAGE_SIZE = 25;
 
 /** Colour-codes a margin so an unprofitable row is obvious at a glance. */
@@ -140,7 +188,7 @@ export default function AdminProducts() {
             <table className="w-full min-w-[900px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-line">
-                  {['Product', 'Category', 'Sell', 'Cost', 'Margin', 'Stock', 'Upstream', 'Synced'].map(
+                  {['Product', 'Category', 'Sell price (edit)', 'Cost', 'Margin $', 'Margin %', 'Stock', 'Upstream', 'Synced'].map(
                     (h) => (
                       <th key={h} scope="col" className="px-4 py-3 t-caption font-medium whitespace-nowrap text-muted">
                         {h}
@@ -173,11 +221,14 @@ export default function AdminProducts() {
                     <td className="max-w-[150px] truncate px-4 py-2.5 text-[13px] text-muted">
                       {p.category?.name ?? '—'}
                     </td>
-                    <td className="tnum px-4 py-2.5 text-[13.5px] whitespace-nowrap text-ink">
-                      {formatPrice(p.price)}
+                    <td className="px-4 py-2.5">
+                      <PriceEditor product={p} onSaved={() => result.reload?.()} />
                     </td>
                     <td className="tnum px-4 py-2.5 text-[13.5px] whitespace-nowrap text-muted">
                       {p.supplier ? formatPrice(p.supplier.costPrice) : '—'}
+                    </td>
+                    <td className="tnum px-4 py-2.5 text-[13.5px] whitespace-nowrap text-ink">
+                      {p.marginAmount !== null && p.marginAmount !== undefined ? formatPrice(p.marginAmount) : '—'}
                     </td>
                     <td className="px-4 py-2.5">
                       <Margin percent={p.marginPercent} />

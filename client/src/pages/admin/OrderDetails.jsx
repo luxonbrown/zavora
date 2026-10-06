@@ -224,6 +224,35 @@ export default function AdminOrderDetails() {
               <dd className="tnum font-medium text-ink">{formatPrice(o.total)}</dd>
             </div>
           </dl>
+
+          {o.financials ? (
+            <dl className="space-y-2 border-t border-line bg-surface-muted px-5 py-4 text-[13px]">
+              <div className="flex justify-between">
+                <dt className="text-muted">Supplier cost</dt>
+                <dd className="tnum text-ink">{formatPrice(o.financials.supplierCostTotal)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted">Supplier shipping</dt>
+                <dd className="tnum text-ink">{formatPrice(o.financials.shippingCostTotal)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted">Payment fee</dt>
+                <dd className="tnum text-ink">{formatPrice(o.financials.paymentFee)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted">Gross margin</dt>
+                <dd className="tnum text-ink">{formatPrice(o.financials.grossMargin)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted">Operating margin</dt>
+                <dd className="tnum text-ink">{formatPrice(o.financials.operatingMargin)}</dd>
+              </div>
+              <div className="flex justify-between border-t border-line pt-2 font-medium">
+                <dt className="text-ink">Estimated net profit</dt>
+                <dd className="tnum text-ink">{formatPrice(o.financials.estimatedNetProfit)}</dd>
+              </div>
+            </dl>
+          ) : null}
         </section>
 
         <div className="space-y-6">

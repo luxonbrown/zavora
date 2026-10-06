@@ -86,7 +86,7 @@ const Button = forwardRef(function Button(
 
   const classes = cx(
     'select-none items-center justify-center rounded-full font-medium',
-    wantedBaseInlineFlex(!wantsDisplayOverride),
+    !wantsDisplayOverride && 'inline-flex',
     'whitespace-nowrap transition-[transform,background-color,border-color,color,opacity,filter] duration-200 ease-out',
     'active:scale-[0.98]',
     'disabled:pointer-events-none disabled:opacity-40',

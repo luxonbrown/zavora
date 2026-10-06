@@ -91,6 +91,13 @@ module.exports = {
 
   pricing: {
     /**
+     * Mock payment processing fee: applied to the customer total. Real provider
+     * fees replace this when a live gateway is wired up.
+     */
+    paymentFeePercent: Number(process.env.PAYMENT_FEE_PERCENT) || 2.9,
+    paymentFeeFixed: Number(process.env.PAYMENT_FEE_FIXED) || 0.30,
+
+    /**
      * Applied to COST, not to the sell price:
      *     sell = cost * (1 + defaultMarkupPercent / 100)
      *

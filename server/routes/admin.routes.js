@@ -26,6 +26,7 @@ router.get('/overview', asyncHandler(adminCatalog.overview));
 
 router.get('/products', asyncHandler(adminCatalog.listProducts));
 router.get('/products/:id', asyncHandler(adminCatalog.getProduct));
+router.patch('/products/:id', asyncHandler(adminCatalog.updatePrice));
 
 router.get('/cj/status', asyncHandler(cj.status));
 router.get('/cj/sync/runs', asyncHandler(cj.listRuns));

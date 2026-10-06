@@ -24,11 +24,12 @@ export default function ChatWidget() {
     {
       id: nextId++,
       from: 'bot',
-      text: 'Hi — I am the MARKETHUB assistant. Ask me to find a product, or track an order with its number.',
+      text: 'Hi! Welcome to our website 👋 I\'m Kanuma AI. I\'m here to help you manage, control, review, analyze, and get assistance with the services you need. How can I help you today?',
     },
   ]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
+  const [welcomeBubble, setWelcomeBubble] = useState(false);
 
   const listRef = useRef(null);
   const inputRef = useRef(null);
@@ -46,6 +47,29 @@ export default function ChatWidget() {
 
   // Abandon any in-flight lookup if the panel closes mid-request.
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Welcome bubble: greet once per session, never on every page change.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('kanuma_welcome_shown')) return;
+      sessionStorage.setItem('kanuma_welcome_shown', '1');
+    } catch {
+      /* storage unavailable — fall through and greet once per mount */
+    }
+    const timer = setTimeout(() => setWelcomeBubble(true), 900);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (open) setWelcomeBubble(false);
+  }, [open]);
+
+  const dismissBubble = () => {
+    setWelcomeBubble(false);
+    try {
+      sessionStorage.setItem('kanuma_welcome_shown', '1');
+    } catch { /* ignore */ }
+  };
 
   const send = async (text) => {
     const value = String(text ?? input).trim();
@@ -89,7 +113,7 @@ export default function ChatWidget() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-label={open ? 'Close assistant' : 'Open assistant'}
+        aria-label={open ? 'Close Kanuma AI assistant' : 'Open Kanuma AI assistant'}
         className={cx(
           'group fixed bottom-5 right-5 z-[60] grid size-14 place-items-center rounded-full',
           'bg-brand-gradient text-white shadow-glow-blue transition-all duration-300',
@@ -107,6 +131,34 @@ export default function ChatWidget() {
         </span>
       </button>
 
+      {/* Welcome bubble — shown once per session while the panel is closed. */}
+      {welcomeBubble && !open ? (
+        <div
+          className="fixed bottom-24 right-5 z-[60] w-[min(300px,calc(100vw-2.5rem))] animate-[mh-rise_0.35s_ease-out] rounded-2xl border border-line bg-paper p-4 shadow-lift"
+          role="status"
+        >
+          <button
+            type="button"
+            onClick={dismissBubble}
+            aria-label="Dismiss welcome message"
+            className="absolute right-2 top-2 rounded-full p-1 text-muted/70 transition hover:bg-canvas hover:text-ink"
+          >
+            <X className="size-3.5" strokeWidth={2} />
+          </button>
+          <p className="t-caption font-semibold text-mh-blue">Kanuma AI</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink">
+            Hi! Welcome to our website 👋 I'm Kanuma AI. I'm here to help you manage, control, review, analyze, and get assistance with the services you need. How can I help you today?
+          </p>
+          <button
+            type="button"
+            onClick={() => { setOpen(true); setWelcomeBubble(false); }}
+            className="mt-2.5 rounded-full bg-brand-gradient px-3.5 py-1.5 text-[12px] font-medium text-white transition hover:brightness-110"
+          >
+            Chat with Kanuma AI
+          </button>
+        </div>
+      ) : null}
+
       {/* Panel. */}
       <div
         className={cx(
@@ -116,7 +168,7 @@ export default function ChatWidget() {
           open ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-6 opacity-0'
         )}
         role="dialog"
-        aria-label="MARKETHUB assistant"
+        aria-label="Kanuma AI assistant"
         aria-hidden={!open}
       >
         {/* Header. */}
@@ -128,7 +180,7 @@ export default function ChatWidget() {
               <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-mh-emerald ring-2 ring-navy" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="t-title leading-tight">MARKETHUB Assistant</p>
+              <p className="t-title leading-tight">Kanuma AI</p>
               <p className="t-caption flex items-center gap-1.5 text-paper/70">
                 <span className="size-1.5 rounded-full bg-mh-emerald" />
                 Online
@@ -236,7 +288,7 @@ export default function ChatWidget() {
                   }}
                 />
               ))}
-              <span className="sr-only">Assistant is typing</span>
+              <span className="sr-only">Kanuma AI is typing</span>
             </div>
           ) : null}
         </div>
@@ -264,7 +316,7 @@ export default function ChatWidget() {
           className="flex items-center gap-2 border-t border-line bg-paper px-3 py-3"
         >
           <label htmlFor="mh-chat-input" className="sr-only">
-            Message the assistant
+            Message Kanuma AI
           </label>
           <input
             id="mh-chat-input"

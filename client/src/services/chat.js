@@ -67,7 +67,7 @@ export const chatService = {
         case 'greet':
           return {
             reply:
-              'Hello. I can find products, track an order, or explain shipping and returns. What would you like?',
+              'Hi! I\'m Kanuma AI. I can find products, track an order, or explain shipping and returns. What would you like?',
             products: [],
           };
 
