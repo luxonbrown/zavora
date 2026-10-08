@@ -2,7 +2,7 @@
   "name": "zavora-server",
   "version": "0.1.0",
   "private": true,
-  "description": "ZAVORA API — Express + MySQL + CJdropshipping",
+  "description": "ZAVORA API — Express + MySQL / external PostgreSQL + CJdropshipping",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -15,13 +15,18 @@
     "catalogue:cj": "node database/wipe-catalogue.js --yes && node database/cj-sync-cli.js",
     "db:schema": "node database/schema-runner.js",
     "db:seed": "node database/seed.js",
-    "db:reset": "npm run db:schema && npm run db:seed"
+    "db:reset": "npm run db:schema && npm run db:seed",
+    "db:pg:check": "node database/postgres/check-connection.js",
+    "db:pg:schema": "node database/postgres/schema-runner.js",
+    "db:pg:seed": "node database/postgres/seed.js",
+    "db:pg:reset": "npm run db:pg:schema && npm run db:pg:seed"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
-    "mysql2": "^3.11.5"
+    "mysql2": "^3.11.5",
+    "pg": "^8.13.1"
   }
 }

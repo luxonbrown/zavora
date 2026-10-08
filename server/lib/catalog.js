@@ -14,6 +14,7 @@
  */
 
 const { query, queryOne } = require('../database/pool');
+const config = require('../config');
 const { decimal } = require('./money');
 
 /** The complete set of product fields allowed in a public response. */
@@ -172,13 +173,23 @@ async function listProducts(params = {}) {
   const q = params.q ? String(params.q).trim() : '';
   let usedFulltext = false;
   let matchArgIndex = -1;
+  const isPostgres = (config.db.driver || 'mysql').toLowerCase() === 'postgres';
   if (q) {
-    // Boolean-mode prefix search, which is what the ft_products_search index is
-    // for. Falls back to LIKE when it matches nothing (below).
-    where.push('MATCH(p.name, p.short_description, p.description) AGAINST (? IN BOOLEAN MODE)');
-    matchArgIndex = args.length;
-    args.push(booleanQuery(q));
-    usedFulltext = true;
+    if (isPostgres) {
+      // Postgres has no MATCH ... AGAINST. The GIN tsvector + pg_trgm indexes
+      // in database/postgres/schema.sql back this ILIKE path; no LIKE retry
+      // below is needed because this IS the fallback.
+      where.push('(p.name ILIKE ? OR p.short_description ILIKE ? OR p.description ILIKE ?)');
+      const like = `%${q}%`;
+      args.push(like, like, like);
+    } else {
+      // Boolean-mode prefix search, which is what the ft_products_search index is
+      // for. Falls back to LIKE when it matches nothing (below).
+      where.push('MATCH(p.name, p.short_description, p.description) AGAINST (? IN BOOLEAN MODE)');
+      matchArgIndex = args.length;
+      args.push(booleanQuery(q));
+      usedFulltext = true;
+    }
   }
 
   const sortKey = SORTABLE[params.sort] ? params.sort : DEFAULT_SORT;

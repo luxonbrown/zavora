@@ -27,6 +27,19 @@ module.exports = {
   },
 
   db: {
+    // 'mysql' (default, local XAMPP/MariaDB) or 'postgres' (external hosted
+    // PG via server/database/postgres/). Set DB_DRIVER=postgres together with
+    // DATABASE_URL to switch without touching code: server/database/pool.js
+    // dispatches to the postgres shim, which exposes the same API.
+    driver: (process.env.DB_DRIVER || (process.env.DATABASE_URL ? 'postgres' : 'mysql')).toLowerCase(),
+    // Full Postgres URL for hosted DBs (Neon/Supabase/Railway/Render).
+    // Takes precedence over the discrete host/port/user/password/database
+    // below when set. MySQL ignores it.
+    connectionString: process.env.DATABASE_URL || '',
+    // Force TLS to hosted Postgres. Auto-enabled for DATABASE_URLs with
+    // sslmode=require or neon.tech/supabase.co/render.com hosts (see
+    // database/postgres/pool.js); set DB_SSL=true for any other hosted PG.
+    ssl: /^true$/i.test(process.env.DB_SSL || ''),
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT) || 3306,
     user: process.env.DB_USER || 'root',

@@ -1,4 +1,22 @@
 /**
+ * Shared database pool — driver dispatcher.
+ *
+ * Default is the original MySQL pool below. When config.db.driver is
+ * 'postgres' (DB_DRIVER=postgres or DATABASE_URL set), this module re-exports
+ * server/database/postgres/pool.js, which exposes the SAME API
+ * (getPool/query/queryOne/execute/txQuery/txExecute/withTransaction/ping/
+ * closePool) via a pg-backed translation shim. No controller/route/lib import
+ * changes: everything keeps requiring `../database/pool`.
+ */
+
+const config = require('../config');
+
+if ((config.db.driver || 'mysql').toLowerCase() === 'postgres') {
+  module.exports = require('./postgres/pool');
+  return;
+}
+
+/**
  * Shared MySQL connection pool.
  *
  * One pool per process, created lazily on first use so that requiring this file
@@ -6,7 +24,6 @@
  */
 
 const mysql = require('mysql2/promise');
-const config = require('../config');
 
 let pool = null;
 
