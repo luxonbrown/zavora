@@ -189,7 +189,7 @@ export const checkoutService = {
     const { data } = await api.get('/checkout/shipping-methods', {
       params: { countryCode, subtotal },
     });
-    return data;
+    return data.methods ?? [];
   },
 
   paymentMethods() {
@@ -203,7 +203,26 @@ export const checkoutService = {
       return priceOrder({ lines, countryCode, shippingMethodId });
     }
     const { data } = await api.post('/checkout/quote', { lines, countryCode, shippingMethodId });
-    return data;
+    // Normalise the server envelope onto the shape the UI renders (mock
+    // fixtures use the same shape, so no component branches on mode).
+    const q = data.quote ?? data;
+    return {
+      lines: (q.items ?? []).map((line) => ({
+        ...line,
+        variantLabel: line.variantLabel ?? line.variantName ?? null,
+      })),
+      subtotal: q.subtotal,
+      shipping: q.shippingAmount,
+      tax: q.taxAmount,
+      taxRate: q.taxRate,
+      total: q.total,
+      currency: q.currency,
+      shippingMethod: q.shippingLabel
+        ? { id: q.shippingMethod, name: q.shippingLabel }
+        : null,
+      estimatedDeliveryAt: q.estimatedDeliveryAt ?? null,
+      quoteToken: q.quoteToken,
+    };
   },
 
   async placeOrder({ lines, contact, address, shippingMethodId, payment }) {
@@ -253,7 +272,15 @@ export const checkoutService = {
       shippingMethodId,
       payment,
     });
-    return data;
+    // Normalise the server order onto the shape the confirmation page renders
+    // (mock mode builds the same shape directly).
+    const { normalizeOrder } = await import('./orders.js');
+    const order = normalizeOrder(data);
+    return {
+      ...order,
+      countryName:
+        getCountry(order.country)?.name ?? order.countryName ?? order.country,
+    };
   },
 };
 

@@ -91,7 +91,9 @@ export default function OrderSummaryPanel({
             label="Shipping"
             hint={
               quote.shippingMethod
-                ? `${quote.shippingMethod.name} · ${quote.shippingMethod.minDays}–${quote.shippingMethod.maxDays} business days`
+                ? quote.estimatedDeliveryAt
+                  ? `${quote.shippingMethod.name} · arrives ${new Date(quote.estimatedDeliveryAt).toLocaleDateString()}`
+                  : quote.shippingMethod.name
                 : undefined
             }
             value={quote.shipping === 0 ? 'Free' : formatPrice(quote.shipping)}

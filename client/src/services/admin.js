@@ -233,6 +233,44 @@ export const adminService = {
     return data.items;
   },
 
+  /* ---- customers, payments, settings ----------------------------------- */
+
+  async customers() {
+    if (USE_MOCK) {
+      await delay();
+      return { items: [] };
+    }
+    const { data } = await api.get('/admin/customers');
+    return data;
+  },
+
+  async payments() {
+    if (USE_MOCK) {
+      await delay();
+      return { items: [] };
+    }
+    const { data } = await api.get('/admin/payments');
+    return data;
+  },
+
+  async settings() {
+    if (USE_MOCK) {
+      await delay();
+      return { settings: [] };
+    }
+    const { data } = await api.get('/admin/settings');
+    return data;
+  },
+
+  async saveSettings(settings) {
+    if (USE_MOCK) {
+      await delay();
+      return { ok: true };
+    }
+    const { data } = await api.put('/admin/settings', { settings });
+    return data;
+  },
+
   /* ---- categories ------------------------------------------------------- */
 
   /** Full three-level category tree. */

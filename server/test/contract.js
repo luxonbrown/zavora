@@ -19,7 +19,13 @@ function clientEndpoints() {
   const found = [];
   for (const file of fs.readdirSync(CLIENT_SERVICES)) {
     if (!file.endsWith('.js')) continue;
-    const src = fs.readFileSync(path.join(CLIENT_SERVICES, file), 'utf8');
+    const raw = fs.readFileSync(path.join(CLIENT_SERVICES, file), 'utf8');
+    // Ignore commented-out examples (e.g. the future-AI hookup sketch in
+    // chat.js) — they are not live endpoints. Service files contain no URLs
+    // with `//`, so line-comment stripping cannot corrupt a real path.
+    const src = raw
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^\S])\/\/.*$/gm, '$1');
 
     const literal = /api\.(?:get|post|patch|put|delete)\(\s*[`']([^`']+)[`']/g;
     let m;

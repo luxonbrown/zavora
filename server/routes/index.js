@@ -31,5 +31,6 @@ router.post('/checkout/place-order', asyncHandler(checkout.placeOrder));
 router.use('/addresses', requireAuth, require('./addresses.routes'));
 router.use('/orders', require('./orders.routes'));
 router.use('/wishlist', requireAuth, require('./wishlist.routes'));
+router.use('/account', requireAuth, require('./account.routes'));
 
 module.exports = router;

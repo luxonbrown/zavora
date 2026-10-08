@@ -57,6 +57,8 @@ CREATE TABLE `users` (
   `last_login_at`  DATETIME        NULL DEFAULT NULL,
   -- PHASE-2 HOOK (no logic implemented): unique code a customer can share.
   `referral_code`  VARCHAR(32)     NULL DEFAULT NULL,
+  -- JSON map of the customer's email notification preferences.
+  `email_preferences` TEXT NULL DEFAULT NULL,
   `created_at`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

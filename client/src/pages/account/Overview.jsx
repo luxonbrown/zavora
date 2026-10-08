@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Package, ShoppingBag, Truck, Wallet } from 'lucide-react';
+import { Heart, MapPin, Package, RotateCcw, Settings, ShoppingBag, Truck, Wallet } from 'lucide-react';
 
 import Button from '../../components/ui/Button.jsx';
 import Skeleton from '../../components/ui/Skeleton.jsx';
@@ -11,6 +11,15 @@ import { useWishlist } from '../../context/WishlistContext.jsx';
 import useAsync from '../../hooks/useAsync.js';
 import ordersService from '../../services/orders.js';
 import { formatPrice } from '../../utils/format.js';
+
+const QUICK_LINKS = [
+  { to: '/account/orders', label: 'My orders', description: 'Track and review purchases', icon: Package },
+  { to: '/account/addresses', label: 'Addresses', description: 'Manage delivery locations', icon: MapPin },
+  { to: '/account/wishlist', label: 'Wishlist', description: 'Saved for later', icon: Heart },
+  { to: '/track-order', label: 'Track order', description: 'Check a delivery', icon: Truck },
+  { to: '/account/profile', label: 'Profile', description: 'Your details', icon: RotateCcw },
+  { to: '/account/settings', label: 'Settings', description: 'Password and alerts', icon: Settings },
+];
 
 export default function Overview() {
   const { user } = useAuth();
@@ -30,14 +39,42 @@ export default function Overview() {
 
   return (
     <div>
-      <header>
-        <h1 className="h3-sub">
+      <header className="rounded-card border border-line bg-surface px-6 py-8 sm:px-8">
+        <p className="t-eyebrow text-muted">Your ZAVORA account</p>
+        <h1 className="h3-sub mt-3">
           Welcome back{user?.firstName ? `, ${firstName}` : ''}
         </h1>
         <p className="t-small mt-2 text-muted">
           Everything about your orders, addresses and saved items lives here.
         </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button to="/shop" variant="primary-dark" size="md">
+            Continue shopping
+          </Button>
+          <Button to="/account/orders" variant="outline-dark" size="md">
+            View orders
+          </Button>
+        </div>
       </header>
+
+      {/* Quick links */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {QUICK_LINKS.map(({ to, label, description, icon: Icon }) => (
+          <Link
+            key={to}
+            to={to}
+            className="group flex items-start gap-4 rounded-card border border-line bg-surface p-5 transition-colors duration-150 hover:bg-surface-muted"
+          >
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-muted text-ink transition-colors group-hover:bg-paper">
+              <Icon className="size-4" strokeWidth={1.6} aria-hidden />
+            </span>
+            <span>
+              <span className="block text-[14px] font-medium text-ink">{label}</span>
+              <span className="t-caption mt-1 block text-muted">{description}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
 
       {/* Stats */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

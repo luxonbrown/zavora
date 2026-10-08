@@ -241,7 +241,20 @@ export const productsService = {
       return getMockReviews(slug, limit);
     }
     const { data } = await api.get(`/products/${slug}/reviews`, { params: { limit } });
-    return data.items ?? [];
+    // Normalise the server shape (authorName/isVerified/createdAt, no id) onto
+    // the mock shape the UI renders, and synthesise a stable key.
+    return (data.items ?? []).map((r, i) => ({
+      id: r.id ?? `${slug}-rev-${r.createdAt ?? i}-${i}`,
+      rating: r.rating,
+      title: r.title,
+      body: r.body,
+      author: r.author ?? r.authorName ?? '',
+      country: r.country,
+      verified: r.verified ?? Boolean(r.isVerified),
+      daysAgo:
+        r.daysAgo ??
+        (r.createdAt ? Math.max(0, Math.round((Date.now() - new Date(r.createdAt).getTime()) / 86400000)) : 0),
+    }));
   },
 };
 

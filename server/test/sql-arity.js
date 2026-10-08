@@ -15,6 +15,8 @@ const FILES = [
   'controllers/orders.js',
   'controllers/checkout.js',
   'controllers/wishlist.js',
+  'controllers/account.js',
+  'controllers/admin.insights.js',
   'database/seed.js',
 ];
 

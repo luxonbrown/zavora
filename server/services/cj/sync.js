@@ -415,6 +415,30 @@ async function runSync({ triggeredBy = null, maxPages = config.cj.maxPages } = {
   const stats = { pagesFetched: 0, seen: 0, created: 0, updated: 0, skipped: 0, failed: 0 };
 
   try {
+    // ---- Phase 0: import the upstream category tree ----
+    // CJ exposes the full first → second → third level tree separately from
+    // the product list, so we mirror it instead of deriving categories only
+    // from whatever products happen to be listed.
+    try {
+      const tree = await client.listCategories();
+      for (const first of tree) {
+        const level1Id = await upsertCategory(first.categoryFirstName, 1, null, null);
+        const slug1 = level1Id !== null ? categorySlug(first.categoryFirstName, 1, null) : null;
+        for (const second of first.categoryFirstList || []) {
+          const level2Id = await upsertCategory(second.categorySecondName, 2, level1Id, slug1);
+          const slug2 = level2Id !== null ? categorySlug(second.categorySecondName, 2, slug1) : null;
+          for (const third of second.categorySecondList || []) {
+            await upsertCategory(third.categoryName, 3, level2Id, slug2);
+          }
+        }
+      }
+      console.log('[cj] category tree imported');
+    } catch (err) {
+      // A category import failure must not block product sync: the product
+      // path derives categories itself via ensureCategoryPath.
+      console.error(`[cj] category tree import failed: ${err.message}`);
+    }
+
     // ---- Phase A: list ----
     let page = 1;
     let totalPages = 1;

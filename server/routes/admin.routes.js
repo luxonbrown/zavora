@@ -21,6 +21,7 @@ router.use(requireAdmin);
 const cj = require('../controllers/admin.cj');
 const adminOrders = require('../controllers/admin.orders');
 const adminCatalog = require('../controllers/admin.catalog');
+const insights = require('../controllers/admin.insights');
 
 router.get('/overview', asyncHandler(adminCatalog.overview));
 
@@ -43,5 +44,10 @@ router.get('/orders', asyncHandler(adminOrders.listOrders));
 router.get('/orders/:orderNumber', asyncHandler(adminOrders.getOrder));
 router.patch('/orders/:orderNumber/status', asyncHandler(adminOrders.updateStatus));
 router.post('/orders/:orderNumber/cancel', asyncHandler(adminOrders.cancelOrder));
+
+router.get('/customers', asyncHandler(insights.listCustomers));
+router.get('/payments', asyncHandler(insights.listPayments));
+router.get('/settings', asyncHandler(insights.getSettings));
+router.put('/settings', asyncHandler(insights.updateSettings));
 
 module.exports = router;

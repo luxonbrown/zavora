@@ -648,6 +648,97 @@ async function wishlistBlock() {
   check('wishlisting an unknown product 404s', (await demo('POST', '/api/wishlist', { productId: '99999999' })).status === 404);
 }
 
+/* ----------------------------------------------------------------- account */
+async function accountBlock() {
+  const anon = makeClient();
+  const user = makeClient();
+  const email = `acct-${Date.now()}@zavora.test`;
+  const password = 'testpass123';
+
+  await user('POST', '/api/auth/register', { email, password, firstName: 'Acct', lastName: 'Test' });
+
+  check('account requires auth', (await anon('GET', '/api/account/profile')).status === 401);
+
+  const profile = await user('GET', '/api/account/profile');
+  check('profile 200s', profile.status === 200, `got ${profile.status}`);
+  check('profile returns the user', profile.body.user && profile.body.user.email === email);
+  check('profile ships default preferences', profile.body.preferences && profile.body.preferences.orderUpdates === true);
+  check('profile has no supplier leak', findSupplierLeak(profile.body).length === 0);
+  check('profile never returns a hash', !JSON.stringify(profile.body).includes('password_hash'));
+
+  const prefs = await user('PUT', '/api/account/preferences', { offers: true, weeklyDrop: true });
+  check('preferences save 200s', prefs.status === 200, `got ${prefs.status}`);
+  check('saved preferences echo back', prefs.body.preferences && prefs.body.preferences.offers === true);
+  const prefsAgain = await user('GET', '/api/account/preferences');
+  check(
+    'preferences persist',
+    prefsAgain.body.preferences && prefsAgain.body.preferences.offers === true && prefsAgain.body.preferences.weeklyDrop === true
+  );
+
+  const renamed = await user('PUT', '/api/account/profile', { firstName: 'Acctx', lastName: 'Test', phone: '+1 555 000 9999' });
+  check('profile update 200s', renamed.status === 200, `got ${renamed.status}`);
+  check('renamed first name sticks', renamed.body.user && renamed.body.user.firstName === 'Acctx');
+
+  check('blank first name 400s', (await user('PUT', '/api/account/profile', { firstName: '', lastName: 'Test' })).status === 400);
+  check('bad email 400s', (await user('PUT', '/api/account/profile', { firstName: 'A', lastName: 'T', email: 'not-an-email' })).status === 400);
+  check('taken email 409s', (await user('PUT', '/api/account/profile', { firstName: 'A', lastName: 'T', email: 'demo@zavora.com' })).status === 409);
+
+  check('wrong current password 401s', (await user('POST', '/api/account/password', { currentPassword: 'nope', newPassword: 'newpass123' })).status === 401);
+  check('short new password 400s', (await user('POST', '/api/account/password', { currentPassword: password, newPassword: 'short' })).status === 400);
+  check('password change 200s', (await user('POST', '/api/account/password', { currentPassword: password, newPassword: 'newpass123' })).status === 200);
+  const relog = makeClient();
+  check('login works with the new password', (await relog('POST', '/api/auth/login', { email, password: 'newpass123' })).status === 200);
+
+  check('account deletion 200s', (await relog('POST', '/api/account/delete')).status === 200);
+  const meAfter = await relog('GET', '/api/auth/me');
+  check('session cleared after deletion', meAfter.body.user === null);
+  check('deleted account cannot log in', (await makeClient()('POST', '/api/auth/login', { email, password: 'newpass123' })).status === 403);
+}
+
+/* ---------------------------------------------------------- admin insights */
+async function adminInsightsBlock() {
+  const admin = makeClient();
+  const customer = makeClient();
+  const anon = makeClient();
+  await admin('POST', '/api/auth/login', { email: 'admin@zavora.com', password: 'zavora-admin-2026' });
+  await customer('POST', '/api/auth/login', { email: 'demo@zavora.com', password: 'zavora1234' });
+
+  check('admin customers need a session', (await anon('GET', '/api/admin/customers')).status === 401);
+  check('customers refuse non-admins', (await customer('GET', '/api/admin/customers')).status === 403);
+
+  const customers = await admin('GET', '/api/admin/customers');
+  check('customers 200s', customers.status === 200, `got ${customers.status}`);
+  check('customers returns rows', Array.isArray(customers.body.items) && customers.body.items.length > 0);
+  check('customers carry no password hash', !JSON.stringify(customers.body).includes('password_hash'));
+  check('customers carry no supplier leak', findSupplierLeak(customers.body).length === 0);
+
+  const payments = await admin('GET', '/api/admin/payments');
+  check('payments 200s', payments.status === 200, `got ${payments.status}`);
+  check('payments returns rows', Array.isArray(payments.body.items));
+  check('payments carry no supplier leak', findSupplierLeak(payments.body).length === 0);
+
+  const settings = await admin('GET', '/api/admin/settings');
+  check('settings 200s', settings.status === 200, `got ${settings.status}`);
+  // Only secret-patterned keys are redacted; non-secret CJ metadata (open id,
+  // placeholder email) is returned plainly but locked against editing.
+  const secretish = (settings.body.settings || []).filter((s) => /(token|secret|password|api[_-]?key)/i.test(s.key));
+  check('cj secrets are redacted', secretish.length > 0 && secretish.every((s) => s.value === '********'));
+  check('locked settings are not editable', (settings.body.settings || []).filter((s) => !s.editable).length > 0);
+  check('editable settings are flagged', (settings.body.settings || []).some((s) => s.editable));
+
+  check('forbidden settings key 400s', (await admin('PUT', '/api/admin/settings', { settings: { 'cj.apiKey': 'hacked' } })).status === 400);
+
+  // Write one whitelisted value, then put it back so the suite stays idempotent.
+  const key = 'pricing.free_shipping_threshold';
+  const before = (settings.body.settings || []).find((s) => s.key === key);
+  check('settings save 200s', (await admin('PUT', '/api/admin/settings', { settings: { [key]: '999.99' } })).status === 200);
+  const after = await admin('GET', '/api/admin/settings');
+  check('saved value sticks', (after.body.settings || []).find((s) => s.key === key)?.value === '999.99');
+  await admin('PUT', '/api/admin/settings', { settings: { [key]: before ? before.value : '150' } });
+  const restored = await admin('GET', '/api/admin/settings');
+  check('settings restore sticks', (restored.body.settings || []).find((s) => s.key === key)?.value === (before ? before.value : '150'));
+}
+
 /* ---------------------------------------------------------------- checkout */
 async function checkoutBlock() {
   const buyer = makeClient();
@@ -922,6 +1013,8 @@ async function main() {
     ['demo account', demoBlock],
     ['addresses', addressBlock],
     ['wishlist', wishlistBlock],
+    ['account', accountBlock],
+    ['admin insights', adminInsightsBlock],
     ['checkout', checkoutBlock],
     ['oversell', oversellBlock],
   ];

@@ -1,4 +1,4 @@
-﻿import { ArrowLeft } from 'lucide-react';
+﻿import { ArrowLeft, Building2, Hash, MapPin, User } from 'lucide-react';
 
 import Button from '../ui/Button.jsx';
 import Field, { renderField } from './FormField.jsx';
@@ -21,6 +21,7 @@ export default function AddressStep({
       label: 'First name',
       placeholder: 'Alex',
       autoComplete: 'given-name',
+      iconLeft: <User className="size-4" strokeWidth={1.6} aria-hidden />,
       validate: required('Enter your first name.'),
     },
     {
@@ -28,6 +29,7 @@ export default function AddressStep({
       label: 'Last name',
       placeholder: 'Moreau',
       autoComplete: 'family-name',
+      iconLeft: <User className="size-4" strokeWidth={1.6} aria-hidden />,
       validate: required('Enter your last name.'),
     },
     {
@@ -42,6 +44,7 @@ export default function AddressStep({
       label: 'State / province',
       placeholder: 'California',
       autoComplete: 'address-level1',
+      iconLeft: <MapPin className="size-4" strokeWidth={1.6} aria-hidden />,
       validate: required('Enter your state or province.'),
     },
     {
@@ -49,6 +52,7 @@ export default function AddressStep({
       label: 'City',
       placeholder: 'San Francisco',
       autoComplete: 'address-level2',
+      iconLeft: <Building2 className="size-4" strokeWidth={1.6} aria-hidden />,
       validate: required('Enter your city.'),
     },
     {
@@ -56,6 +60,7 @@ export default function AddressStep({
       label: 'Address',
       placeholder: '1200 Market Street',
       autoComplete: 'address-line1',
+      iconLeft: <MapPin className="size-4" strokeWidth={1.6} aria-hidden />,
       validate: required('Enter your street address.'),
     },
     {
@@ -63,12 +68,14 @@ export default function AddressStep({
       label: 'Apartment, suite (optional)',
       placeholder: 'Apt 4B',
       autoComplete: 'address-line2',
+      iconLeft: <Building2 className="size-4" strokeWidth={1.6} aria-hidden />,
     },
     {
       name: 'postalCode',
       label: 'Postal code',
       placeholder: '94103',
       autoComplete: 'postal-code',
+      iconLeft: <Hash className="size-4" strokeWidth={1.6} aria-hidden />,
       validate: postalCode,
     },
   ];

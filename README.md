@@ -99,7 +99,7 @@ cd server && npm run test:unit   # everything except the API suite (no HTTP)
 | `test/money.js` | cents/decimal conversions never mix units |
 | `test/sql-arity.js` | every statement binds one value per placeholder |
 | `test/contract.js` | every client endpoint matches a registered server route |
-| `test/smoke.js` | 164 end-to-end API checks incl. an oversell race |
+| `test/smoke.js` | 202 end-to-end API checks incl. account, admin-insights blocks and an oversell race |
 | `test/cj.js` | CJ mapper, envelope parsing, error codes, token exchange |
 | `test/orders.js` | Order state machine, shipping rules, cancel/restock |
 

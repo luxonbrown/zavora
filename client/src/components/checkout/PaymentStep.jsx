@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, CreditCard, Lock } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, CreditCard, Lock, User } from 'lucide-react';
 
 import Button from '../ui/Button.jsx';
 import Field, { formatCardNumber, formatExpiry, renderField } from './FormField.jsx';
@@ -57,81 +57,88 @@ export default function PaymentStep({
       </ul>
 
       {method === 'card' ? (
-        <div className="mt-6 grid gap-5 sm:grid-cols-2">
-          <Field span={2}>
-            {renderField(
-              {
-                name: 'cardNumber',
-                label: 'Card number',
-                placeholder: '4242 4242 4242 4242',
-                autoComplete: 'cc-number',
-                inputMode: 'numeric',
-                validate: cardNumber,
-              },
-              card,
-              errors,
-              (spec) => (event) =>
-                onCardChange({ ...card, cardNumber: formatCardNumber(event.target.value) })
-            )}
-          </Field>
+        <div className="mt-6 rounded-card border border-line bg-paper p-6">
+          <div className="flex items-center justify-between gap-3">
+            <p className="t-small font-medium text-ink">Card details</p>
+            <CreditCard className="size-5 text-muted" strokeWidth={1.6} aria-hidden />
+          </div>
 
-          <Field>
-            {renderField(
-              {
-                name: 'expiry',
-                label: 'Expiry',
-                placeholder: 'MM/YY',
-                autoComplete: 'cc-exp',
-                inputMode: 'numeric',
-                maxLength: 5,
-                validate: expiry,
-              },
-              card,
-              errors,
-              (spec) => (event) =>
-                onCardChange({ ...card, expiry: formatExpiry(event.target.value) })
-            )}
-          </Field>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            <Field span={2}>
+              {renderField(
+                {
+                  name: 'cardNumber',
+                  label: 'Card number',
+                  placeholder: '4242 4242 4242 4242',
+                  autoComplete: 'cc-number',
+                  inputMode: 'numeric',
+                  validate: cardNumber,
+                  iconLeft: <CreditCard className="size-4" strokeWidth={1.6} aria-hidden />,
+                },
+                card,
+                errors,
+                (spec) => (event) =>
+                  onCardChange({ ...card, cardNumber: formatCardNumber(event.target.value) })
+              )}
+            </Field>
 
-          <Field>
-            {renderField(
-              {
-                name: 'cvc',
-                label: 'Security code',
-                placeholder: '123',
-                autoComplete: 'cc-csc',
-                inputMode: 'numeric',
-                maxLength: 4,
-                validate: cvc,
-              },
-              card,
-              errors,
-              (spec) => (event) =>
-                onCardChange({
-                  ...card,
-                  cvc: event.target.value.replace(/\D/g, '').slice(0, 4),
-                })
-            )}
-          </Field>
+            <Field>
+              {renderField(
+                {
+                  name: 'expiry',
+                  label: 'Expiry',
+                  placeholder: 'MM/YY',
+                  autoComplete: 'cc-exp',
+                  inputMode: 'numeric',
+                  maxLength: 5,
+                  validate: expiry,
+                  iconLeft: <Calendar className="size-4" strokeWidth={1.6} aria-hidden />,
+                },
+                card,
+                errors,
+                (spec) => (event) =>
+                  onCardChange({ ...card, expiry: formatExpiry(event.target.value) })
+              )}
+            </Field>
 
-          <Field span={2}>
-            <label htmlFor="cardName" className="t-small mb-1.5 block font-medium text-ink">
-              Name on card
-            </label>
-            <input
-              id="cardName"
-              name="cardName"
-              autoComplete="cc-name"
-              value={card.cardName ?? ''}
-              onChange={(e) => onCardChange({ ...card, cardName: e.target.value })}
-              placeholder="Alex Moreau"
-              aria-invalid={errors.cardName ? true : undefined}
-              className="h-13 w-full rounded-xl border border-line bg-paper px-3.5 text-[15px] text-ink transition-colors duration-150 placeholder:text-muted focus:border-ink focus:ring-2 focus:ring-ink/8 focus:outline-none"
-            />
-            {errors.cardName ? (
-              <p className="t-caption mt-1.5 text-danger">{errors.cardName}</p>
-            ) : null}
-          </Field>
+            <Field>
+              {renderField(
+                {
+                  name: 'cvc',
+                  label: 'Security code',
+                  placeholder: '123',
+                  autoComplete: 'cc-csc',
+                  inputMode: 'numeric',
+                  maxLength: 4,
+                  validate: cvc,
+                  iconLeft: <Lock className="size-4" strokeWidth={1.6} aria-hidden />,
+                },
+                card,
+                errors,
+                (spec) => (event) =>
+                  onCardChange({
+                    ...card,
+                    cvc: event.target.value.replace(/\D/g, '').slice(0, 4),
+                  })
+              )}
+            </Field>
+
+            <Field span={2}>
+              {renderField(
+                {
+                  name: 'cardName',
+                  label: 'Name on card',
+                  placeholder: 'Alex Moreau',
+                  autoComplete: 'cc-name',
+                  validate: required('Enter the name on the card.'),
+                  iconLeft: <User className="size-4" strokeWidth={1.6} aria-hidden />,
+                },
+                card,
+                errors,
+                () => (event) => onCardChange({ ...card, cardName: event.target.value })
+              )}
+            </Field>
+          </div>
         </div>
       ) : null}
 

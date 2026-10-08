@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import Button from '../../components/ui/Button.jsx';
 import Input from '../../components/ui/Input.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import accountService from '../../services/account.js';
 import {
   validateEmail,
   validatePhone,
@@ -13,12 +14,12 @@ import {
 } from '../../utils/validation.js';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const [values, setValues] = useState({
     firstName: user?.firstName ?? '',
     lastName: user?.lastName ?? '',
     email: user?.email ?? '',
-    phone: '',
+    phone: user?.phone ?? '',
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -44,10 +45,16 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      // Step 11 posts this to PATCH /account/profile. Until then the profile is
-      // session-local, so there is no server round-trip to await.
-      await new Promise((r) => setTimeout(r, 400));
+      await accountService.updateProfile({
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        phone: values.phone,
+      });
+      await refresh();
       toast.success('Profile saved', { description: 'Your details are up to date.' });
+    } catch (err) {
+      toast.error(err?.response?.data?.error ?? 'Could not save your profile');
     } finally {
       setSaving(false);
     }
@@ -104,7 +111,11 @@ export default function Profile() {
         </div>
 
         <div className="mt-7 flex items-center justify-between gap-4">
-          <p className="t-caption text-muted">Member since March 2026</p>
+          <p className="t-caption text-muted">
+            {user?.createdAt
+              ? `Member since ${new Date(user.createdAt).toLocaleString('en-US', { month: 'long', year: 'numeric' })}`
+              : ''}
+          </p>
           <Button type="submit" variant="primary-dark" size="lg" loading={saving}>
             Save changes
           </Button>

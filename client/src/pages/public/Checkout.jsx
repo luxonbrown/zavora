@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ShoppingBag } from 'lucide-react';
+import { ClipboardCheck, CreditCard, Mail, MapPin, ShieldCheck, ShoppingBag, Truck } from 'lucide-react';
 
 import Container from '../../components/layout/Container.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -285,6 +285,7 @@ export default function Checkout() {
           <div className="min-w-0 overflow-hidden rounded-card border border-line">
             <CheckoutStep
               index={1}
+              icon={Mail}
               title="Contact"
               summary={stepSummary[0]}
               open={step === 0}
@@ -303,6 +304,7 @@ export default function Checkout() {
 
             <CheckoutStep
               index={2}
+              icon={MapPin}
               title="Shipping address"
               summary={stepSummary[1]}
               open={step === 1}

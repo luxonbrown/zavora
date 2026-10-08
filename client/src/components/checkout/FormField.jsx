@@ -12,7 +12,6 @@ import { cx } from '../../utils/format.js';
  */
 export function renderField(spec, values, errors, onChange) {
   const shared = {
-    key: spec.name,
     name: spec.name,
     label: spec.label,
     error: errors[spec.name],
@@ -38,7 +37,7 @@ export function renderField(spec, values, errors, onChange) {
     );
   }
 
-  if (spec.as === 'password') return <PasswordField {...shared} size={spec.size ?? 'lg'} />;
+  if (spec.as === 'password') return <PasswordField {...shared} hint={spec.hint} size={spec.size ?? 'lg'} />;
 
   return (
     <Input
@@ -49,6 +48,7 @@ export function renderField(spec, values, errors, onChange) {
       maxLength={spec.maxLength}
       onChange={(event) => onChange(spec)(event)}
       iconLeft={spec.iconLeft}
+      hint={spec.hint}
     />
   );
 }

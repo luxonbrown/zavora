@@ -14,6 +14,7 @@ export default function CheckoutStep({
   open,
   complete,
   onToggle,
+  icon: Icon,
   children,
 }) {
   return (
@@ -34,7 +35,7 @@ export default function CheckoutStep({
                 : 'border border-line-strong text-muted'
           )}
         >
-          {complete ? <Check className="size-3.5" strokeWidth={2.6} aria-hidden /> : index}
+          {complete ? <Check className="size-3.5" strokeWidth={2.6} aria-hidden /> : Icon ? <Icon className="size-3.5" strokeWidth={2} aria-hidden /> : index}
         </span>
 
         <button

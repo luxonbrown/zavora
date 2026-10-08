@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { Bell, Lock, Trash2 } from 'lucide-react';
 
 import Button from '../../components/ui/Button.jsx';
 import PasswordField from '../../components/ui/PasswordField.jsx';
 import Checkbox from '../../components/ui/Checkbox.jsx';
 import { passwordStrength, validateFields, hasErrors } from '../../utils/validation.js';
 import { cx } from '../../utils/format.js';
+import accountService from '../../services/account.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const PREFERENCES = [
   {
@@ -32,19 +35,29 @@ const PREFERENCES = [
 ];
 
 export default function Settings() {
-  const [preferences, setPreferences] = useState({
-    orderUpdates: true,
-    backInStock: true,
-    weeklyDrop: false,
-    offers: false,
-  });
+  const { logout } = useAuth();
+  const [preferences, setPreferences] = useState(null);
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [savedPrefs, setSavedPrefs] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     document.title = 'Account settings — MARKETHUB';
+    let cancelled = false;
+    accountService
+      .getPreferences()
+      .then((res) => {
+        if (!cancelled) setPreferences(res.preferences);
+      })
+      .catch(() => {
+        if (!cancelled) setPreferences({});
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const strength = passwordStrength(passwords.next);
@@ -75,27 +88,47 @@ export default function Settings() {
     setErrors(nextErrors);
     if (hasErrors(nextErrors)) return;
 
-    setSaving(true);
+    setSavingPassword(true);
     try {
-      // Step 11 posts this to POST /account/password.
-      await new Promise((r) => setTimeout(r, 450));
+      await accountService.changePassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.next,
+      });
       setPasswords({ current: '', next: '', confirm: '' });
       toast.success('Password updated');
+    } catch (err) {
+      toast.error(err?.response?.data?.error ?? 'Could not update password');
     } finally {
-      setSaving(false);
+      setSavingPassword(false);
     }
   };
 
   const savePreferences = async () => {
-    setSaving(true);
+    setSavingPrefs(true);
     try {
-      // Step 11 persists these to the `users` table.
-      await new Promise((r) => setTimeout(r, 350));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2200);
+      const res = await accountService.savePreferences(preferences);
+      setPreferences(res.preferences);
+      setSavedPrefs(true);
+      setTimeout(() => setSavedPrefs(false), 2200);
       toast.success('Preferences saved');
+    } catch (err) {
+      toast.error(err?.response?.data?.error ?? 'Could not save preferences');
     } finally {
-      setSaving(false);
+      setSavingPrefs(false);
+    }
+  };
+
+  const requestDeletion = async () => {
+    if (!window.confirm('This permanently deactivates your account. Continue?')) return;
+    setDeleting(true);
+    try {
+      await accountService.deleteAccount();
+      await logout().catch(() => {});
+      toast.success('Account deleted');
+      window.location.href = '/';
+    } catch (err) {
+      toast.error(err?.response?.data?.error ?? 'Could not delete account');
+      setDeleting(false);
     }
   };
 
@@ -103,14 +136,19 @@ export default function Settings() {
     <div className="max-w-2xl">
       <header>
         <h1 className="h3-sub">Account settings</h1>
-        <p className="t-small mt-2 text-muted">Password and what we email you about.</p>
+        <p className="t-small mt-2 text-muted">Password, notifications and account control.</p>
       </header>
 
       {/* Password */}
-      <section className="mt-8 rounded-card border border-line p-6">
-        <h2 className="t-title">Password</h2>
+      <section className="mt-8 rounded-card border border-line p-6 sm:p-8">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-full bg-surface-muted text-ink">
+            <Lock className="size-4" strokeWidth={1.6} aria-hidden />
+          </span>
+          <h2 className="t-title">Password</h2>
+        </div>
 
-        <form onSubmit={changePassword} noValidate className="mt-5 space-y-5">
+        <form onSubmit={changePassword} noValidate className="mt-6 space-y-5">
           <PasswordField
             label="Current password"
             name="current"
@@ -167,7 +205,7 @@ export default function Settings() {
           />
 
           <div className="flex justify-end">
-            <Button type="submit" variant="primary-dark" size="lg" loading={saving}>
+            <Button type="submit" variant="primary-dark" size="lg" loading={savingPassword}>
               Update password
             </Button>
           </div>
@@ -175,40 +213,50 @@ export default function Settings() {
       </section>
 
       {/* Notifications */}
-      <section className="mt-4 rounded-card border border-line p-6">
+      <section className="mt-4 rounded-card border border-line p-6 sm:p-8">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="t-title">Notifications</h2>
-          {saved ? <span className="t-caption text-success">Saved</span> : null}
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-full bg-surface-muted text-ink">
+              <Bell className="size-4" strokeWidth={1.6} aria-hidden />
+            </span>
+            <h2 className="t-title">Notifications</h2>
+          </div>
+          {savedPrefs ? <span className="t-caption text-success">Saved</span> : null}
         </div>
 
-        <ul className="mt-5 divide-y divide-line">
-          {PREFERENCES.map((pref) => (
-            <li key={pref.id} className="flex items-start justify-between gap-6 py-4 first:pt-0">
-              <div className="min-w-0">
-                <p className="t-small font-medium">{pref.label}</p>
-                <p className="t-caption mt-1 text-muted">{pref.description}</p>
-              </div>
-              <Checkbox
-                id={pref.id}
-                name={pref.id}
-                checked={preferences[pref.id]}
-                disabled={pref.locked}
-                onChange={(e) =>
-                  setPreferences((p) => ({ ...p, [pref.id]: e.target.checked }))
-                }
-                label={<span className="sr-only">{pref.label}</span>}
-                className="w-auto shrink-0"
-              />
-            </li>
-          ))}
-        </ul>
+        {preferences === null ? (
+          <p className="t-small mt-5 text-muted">Loading your preferences…</p>
+        ) : (
+          <ul className="mt-5 divide-y divide-line">
+            {PREFERENCES.map((pref) => (
+              <li key={pref.id} className="flex items-start justify-between gap-6 py-4 first:pt-0">
+                <div className="min-w-0">
+                  <p className="t-small font-medium">{pref.label}</p>
+                  <p className="t-caption mt-1 text-muted">{pref.description}</p>
+                </div>
+                <Checkbox
+                  id={pref.id}
+                  name={pref.id}
+                  checked={Boolean(preferences[pref.id])}
+                  disabled={pref.locked}
+                  onChange={(e) =>
+                    setPreferences((p) => ({ ...p, [pref.id]: e.target.checked }))
+                  }
+                  label={<span className="sr-only">{pref.label}</span>}
+                  className="w-auto shrink-0"
+                />
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="mt-5 flex justify-end">
           <Button
             variant="primary-dark"
             size="lg"
-            loading={saving}
+            loading={savingPrefs}
             onClick={savePreferences}
+            disabled={!preferences}
           >
             Save preferences
           </Button>
@@ -216,14 +264,25 @@ export default function Settings() {
       </section>
 
       {/* Danger zone */}
-      <section className="mt-4 rounded-card border border-danger/25 p-6">
-        <h2 className="t-title">Delete account</h2>
-        <p className="t-small mt-2 text-muted">
-          This removes your profile, saved addresses and order history. Orders already
-          shipped are retained for tax records.
+      <section className="mt-4 rounded-card border border-danger/25 p-6 sm:p-8">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-full bg-danger/10 text-danger">
+            <Trash2 className="size-4" strokeWidth={1.6} aria-hidden />
+          </span>
+          <h2 className="t-title">Delete account</h2>
+        </div>
+        <p className="t-small mt-3 text-muted">
+          This deactivates your profile and removes saved addresses, your wishlist and cart.
+          Order history is retained anonymously for fulfilment records.
         </p>
-        <Button variant="outline-dark" size="lg" className="mt-5">
-          Request account deletion
+        <Button
+          variant="outline-dark"
+          size="lg"
+          className="mt-5"
+          loading={deleting}
+          onClick={requestDeletion}
+        >
+          Delete account
         </Button>
       </section>
     </div>
